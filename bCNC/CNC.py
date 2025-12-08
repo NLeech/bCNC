@@ -138,6 +138,7 @@ class Probe:
 
         self.xn = 5
         self.yn = 5
+        self.samples = 1
 
         self.points = []  # probe points
         self.matrix = []  # 2D matrix with Z coordinates
@@ -161,7 +162,7 @@ class Probe:
     def makeMatrix(self):
         del self.matrix[:]
         for j in range(self.yn):
-            self.matrix.append([0.0] * (self.xn))
+            self.matrix.append([[] for _ in range(self.xn)])
 
     # ----------------------------------------------------------------------
     # Load autolevel information from file
@@ -275,6 +276,24 @@ class Probe:
         return lines
 
     # ----------------------------------------------------------------------
+    # Calculate the median for each point and update the matrix
+    # ----------------------------------------------------------------------
+    def calculate_median(self):
+        for j in range(self.yn):
+            for i in range(self.xn):
+                values = self.matrix[j][i]
+                if values:
+                    values.sort()
+                    mid = len(values) // 2
+                    if len(values) % 2 == 0:
+                        median = (values[mid - 1] + values[mid]) / 2.0
+                    else:
+                        median = values[mid]
+                    self.matrix[j][i] = median
+                else:
+                    self.matrix[j][i] = 0.0
+
+    # ----------------------------------------------------------------------
     # Return the code needed to scan for autoleveling
     # ----------------------------------------------------------------------
     def scan(self):
@@ -290,14 +309,15 @@ class Probe:
         for j in range(self.yn):
             y = self.ymin + self._ystep * j
             for i in range(self.xn):
-                lines.append(f"G0Z{self.zmax:.4f}")
-                lines.append(f"G0X{x:.4f}Y{y:.4f}")
-                lines.append("%wait")  # added for smoothie
-                lines.append(
-                    f"{CNC.vars['prbcmd']}Z{self.zmin:.4f}"
-                    f"F{CNC.vars['prbfeed']:g}"
-                )
-                lines.append("%wait")  # added for smoothie
+                for _ in range(self.samples):
+                    lines.append(f"G0Z{self.zmax:.4f}")
+                    lines.append(f"G0X{x:.4f}Y{y:.4f}")
+                    lines.append("%wait")  # added for smoothie
+                    lines.append(
+                        f"{CNC.vars['prbcmd']}Z{self.zmin:.4f}"
+                        f"F{CNC.vars['prbfeed']:g}"
+                    )
+                    lines.append("%wait")  # added for smoothie
                 x += xstep
             x -= xstep
             xstep = -xstep
@@ -328,13 +348,14 @@ class Probe:
             return
 
         try:
-            self.matrix[int(j)][int(i)] = z
+            self.matrix[int(j)][int(i)].append(z)
             self.points.append([x, y, z])
         except IndexError:
             pass
 
-        if len(self.points) >= self.xn * self.yn:
+        if len(self.points) >= self.xn * self.yn * self.samples:
             self.start = False
+            self.calculate_median()
 
     # ----------------------------------------------------------------------
     # Make z-level relative to the location of (x,y,0)

@@ -1327,6 +1327,23 @@ class AutolevelFrame(CNCRibbon.PageFrame):
         tkExtra.Balloon.set(self.probeZmax, _("Z safe to move"))
         self.addWidget(self.probeZmax)
 
+        # --- Samples ---
+        row += 1
+        col = 0
+        Label(lframe, text=_("Samples:")).grid(row=row, column=col, sticky=E)
+        col += 1
+        self.probeSamples = Spinbox(
+            lframe,
+            from_=1,
+            to_=100,
+            command=self.draw,
+            background=tkExtra.GLOBAL_CONTROL_BACKGROUND,
+            width=3,
+        )
+        self.probeSamples.grid(row=row, column=col, sticky=EW)
+        tkExtra.Balloon.set(self.probeSamples, _("Samples per point (median)"))
+        self.addWidget(self.probeSamples)
+
         lframe.grid_columnconfigure(1, weight=2)
         lframe.grid_columnconfigure(2, weight=2)
         lframe.grid_columnconfigure(3, weight=1)
@@ -1361,6 +1378,7 @@ class AutolevelFrame(CNCRibbon.PageFrame):
         Utils.setInt("Probe", "yn", self.probeYbins.get())
         Utils.setFloat("Probe", "zmin", self.probeZmin.get())
         Utils.setFloat("Probe", "zmax", self.probeZmax.get())
+        Utils.setInt("Probe", "samples", self.probeSamples.get())
 
     # -----------------------------------------------------------------------
     def loadConfig(self):
@@ -1376,6 +1394,10 @@ class AutolevelFrame(CNCRibbon.PageFrame):
 
         self.probeYbins.delete(0, END)
         self.probeYbins.insert(0, max(2, Utils.getInt("Probe", "yn", 5)))
+
+        self.probeSamples.delete(0, END)
+        self.probeSamples.insert(0, max(1, Utils.getInt("Probe", "samples", 1)))
+
         self.change(False)
 
     # -----------------------------------------------------------------------
@@ -1441,6 +1463,7 @@ class AutolevelFrame(CNCRibbon.PageFrame):
         try:
             probe.zmin = float(self.probeZmin.get())
             probe.zmax = float(self.probeZmax.get())
+            probe.samples = max(1, int(self.probeSamples.get()))
         except ValueError:
             if verbose:
                 messagebox.showerror(
