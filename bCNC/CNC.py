@@ -283,12 +283,21 @@ class Probe:
             for i in range(self.xn):
                 values = self.matrix[j][i]
                 if values:
+                    print(f"DEBUG: Calculating median for matrix[{j}][{i}]: Raw values = {values}")
                     values.sort()
+                    print(f"DEBUG: Sorted values = {values}")
                     mid = len(values) // 2
                     if len(values) % 2 == 0:
                         median = (values[mid - 1] + values[mid]) / 2.0
                     else:
                         median = values[mid]
+
+                    min_val = min(values)
+                    max_val = max(values)
+                    deviation = max_val - min_val
+
+                    print(f"DEBUG: Median = {median:.4f}, Min = {min_val:.4f}, Max = {max_val:.4f}, Range = {deviation:.4f}")
+
                     self.matrix[j][i] = median
                 else:
                     self.matrix[j][i] = 0.0
@@ -347,11 +356,14 @@ class Probe:
         if rem > self._ystep / 10.0:
             return
 
+        print(f"DEBUG: Probe add (x={x:.4f}, y={y:.4f}, z={z:.4f}) at matrix[{int(j)}][{int(i)}]")
         try:
             self.matrix[int(j)][int(i)].append(z)
             self.points.append([x, y, z])
         except IndexError:
             pass
+
+        print(f"DEBUG: Current samples for matrix[{int(j)}][{int(i)}]: {self.matrix[int(j)][int(i)]}")
 
         if len(self.points) >= self.xn * self.yn * self.samples:
             self.start = False

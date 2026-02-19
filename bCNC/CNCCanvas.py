@@ -1781,7 +1781,21 @@ class CNCCanvas(Canvas):
             and probe.matrix
             and self.view in (VIEW_XY, VIEW_ISO1, VIEW_ISO2, VIEW_ISO3)
         ):
-            array = numpy.array(list(reversed(probe.matrix)), numpy.float32)
+            # Create a temporary matrix with mean values for drawing
+            draw_matrix = []
+            for row in probe.matrix:
+                draw_row = []
+                for cell in row:
+                    if isinstance(cell, list):
+                        if cell:
+                            draw_row.append(numpy.mean(cell))
+                        else:
+                            draw_row.append(0.0)
+                    else:
+                        draw_row.append(cell)
+                draw_matrix.append(draw_row)
+
+            array = numpy.array(list(reversed(draw_matrix)), numpy.float32)
 
             lw = array.min()
             hg = array.max()
